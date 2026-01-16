@@ -21,16 +21,25 @@ function getBrevoApiKey() {
  */
 export async function sendEbookEmail({ name, email, phone }) {
   try {
+    // Get domain for file link
+    const domain = process.env.DOMAIN || 'https://www.bethmirage.com'
+    const fileLink = `${domain}/media/ebook.pdf`
+    
     // Read PDF file
     // Try multiple paths for different environments (Vercel, local, etc.)
     const possiblePaths = [
       path.resolve(process.cwd(), 'public/media/ebook.pdf'),
       path.resolve(process.cwd(), 'media/ebook.pdf'),
       path.resolve(__dirname, '../', process.env.EBOOK_PDF_PATH || './ebooks/nas-garras-de-beth-mirage.pdf'),
-      path.resolve(__dirname, '../../media/ebook.pdf')
+      path.resolve(__dirname, '../../media/ebook.pdf'),
+      path.resolve(__dirname, '../../frontend/public/media/ebook.pdf'),
+      path.resolve(__dirname, '../../frontend/media/ebook.pdf')
     ]
     
     let pdfPath = null
+    let pdfBase64 = null
+    
+    // Try to read from filesystem first
     for (const possiblePath of possiblePaths) {
       if (fs.existsSync(possiblePath)) {
         pdfPath = possiblePath
@@ -38,16 +47,26 @@ export async function sendEbookEmail({ name, email, phone }) {
       }
     }
     
-    if (!pdfPath) {
-      throw new Error(`PDF file not found. Tried paths: ${possiblePaths.join(', ')}`)
+    // If found on filesystem, read it
+    if (pdfPath) {
+      const pdfContent = fs.readFileSync(pdfPath)
+      pdfBase64 = pdfContent.toString('base64')
+    } else {
+      // Fallback: fetch PDF from public URL (for Vercel serverless functions)
+      console.log('PDF not found on filesystem, fetching from URL:', fileLink)
+      try {
+        const response = await fetch(fileLink)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch PDF from URL: ${response.status} ${response.statusText}`)
+        }
+        const arrayBuffer = await response.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        pdfBase64 = buffer.toString('base64')
+        console.log('✅ PDF fetched successfully from URL')
+      } catch (fetchError) {
+        throw new Error(`PDF file not found on filesystem and could not fetch from URL (${fileLink}): ${fetchError.message}. Tried paths: ${possiblePaths.join(', ')}`)
+      }
     }
-
-    const pdfContent = fs.readFileSync(pdfPath)
-    const pdfBase64 = pdfContent.toString('base64')
-
-    // Get domain for file link
-    const domain = process.env.DOMAIN || 'https://bethmirage.com'
-    const fileLink = `${domain}/media/ebook.pdf`
     
     // Platform link (if you have one, otherwise use contact email)
     const platformLink = process.env.PLATFORM_LINK || `${domain}`
