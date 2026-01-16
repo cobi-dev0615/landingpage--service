@@ -18,21 +18,38 @@ const PORT = process.env.PORT || 3001
 // CORS configuration - allow requests from frontend domain(s)
 const allowedOrigins = process.env.FRONTEND_URL 
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://localhost:3000']
+  : [
+      'http://localhost:3000',
+      'https://www.bethmirage.com',
+      'https://bethmirage.com'
+    ]
 
-app.use(cors({
-  origin: (origin, callback) => {
+// CORS middleware with explicit preflight handling for Vercel
+const corsOptions = {
+  origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true)
     
     if (allowedOrigins.includes(origin)) {
       callback(null, true)
     } else {
+      // Log for debugging
+      console.log('CORS blocked origin:', origin)
+      console.log('Allowed origins:', allowedOrigins)
       callback(new Error('Not allowed by CORS'))
     }
   },
-  credentials: true
-}))
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type'],
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+}
+
+app.use(cors(corsOptions))
+
+// Explicitly handle OPTIONS requests for all routes (preflight)
+app.options('*', cors(corsOptions))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 

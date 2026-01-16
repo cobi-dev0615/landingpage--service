@@ -121,7 +121,8 @@ export async function sendStoryConfirmation({ email, identificationType }) {
       replyTo: {
         email: process.env.REPLY_TO_EMAIL || 'contato@bethmirage.com.br'
       },
-      subject: 'Recebemos seu relato - Beth Mirage',
+      subject: 'Recebemos seu relato - Beth Mirage'
+    }
 
     const anonymityText = identificationType === 'anonymous' 
       ? 'Seu relato foi recebido de forma completamente anônima.'
