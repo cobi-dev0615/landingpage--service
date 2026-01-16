@@ -46,7 +46,7 @@ export async function sendEbookEmail({ name, email, phone }) {
     const pdfBase64 = pdfContent.toString('base64')
 
     // Get domain for file link
-    const domain = process.env.DOMAIN || 'https://bethmirage.com.br'
+    const domain = process.env.DOMAIN || 'https://bethmirage.com'
     const fileLink = `${domain}/media/ebook.pdf`
     
     // Platform link (if you have one, otherwise use contact email)
@@ -56,14 +56,14 @@ export async function sendEbookEmail({ name, email, phone }) {
     const emailData = {
       sender: {
         name: process.env.FROM_NAME || 'Beth Mirage',
-        email: process.env.FROM_EMAIL || 'noreply@bethmirage.com.br'
+        email: process.env.FROM_EMAIL || 'noreply@bethmirage.com'
       },
       to: [{
         email: email,
         name: name
       }],
       replyTo: {
-        email: process.env.REPLY_TO_EMAIL || 'contato@bethmirage.com.br'
+        email: process.env.REPLY_TO_EMAIL || 'contato@bethmirage.com'
       },
       templateId: parseInt(process.env.BREVO_TEMPLATE_ID || '0'),
       params: {
