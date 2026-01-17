@@ -21,9 +21,12 @@ function getBrevoApiKey() {
  */
 export async function sendEbookEmail({ name, email, phone }) {
   try {
-    // Get domain for file link
+    // Get backend URL for PDF download link
+    const backendUrl = process.env.BACKEND_URL || process.env.API_URL || 'https://landingpage-service.vercel.app'
+    const fileLink = `${backendUrl}/media/ebook.pdf`
+    
+    // Get domain for platform link (frontend)
     const domain = process.env.DOMAIN || 'https://www.bethmirage.com'
-    const fileLink = `${domain}/media/ebook.pdf`
     
     // Read PDF file
     // Try multiple paths for different environments (Vercel, local, etc.)
