@@ -27,14 +27,20 @@ export async function sendEbookEmail({ name, email, phone }) {
     
     // Read PDF file
     // Try multiple paths for different environments (Vercel, local, etc.)
+    // Priority: server directory first, then other locations
     const possiblePaths = [
-      path.resolve(process.cwd(), 'public/media/ebook.pdf'),
+      // Server directory (highest priority for backend)
+      path.resolve(__dirname, '../media/ebook.pdf'),
       path.resolve(process.cwd(), 'media/ebook.pdf'),
-      path.resolve(__dirname, '../', process.env.EBOOK_PDF_PATH || './ebooks/nas-garras-de-beth-mirage.pdf'),
+      // Environment variable path
+      process.env.EBOOK_PDF_PATH ? path.resolve(__dirname, '../', process.env.EBOOK_PDF_PATH) : null,
+      // Other common locations
+      path.resolve(process.cwd(), 'public/media/ebook.pdf'),
+      path.resolve(__dirname, '../ebooks/nas-garras-de-beth-mirage.pdf'),
       path.resolve(__dirname, '../../media/ebook.pdf'),
       path.resolve(__dirname, '../../frontend/public/media/ebook.pdf'),
       path.resolve(__dirname, '../../frontend/media/ebook.pdf')
-    ]
+    ].filter(Boolean) // Remove null values
     
     let pdfPath = null
     let pdfBase64 = null

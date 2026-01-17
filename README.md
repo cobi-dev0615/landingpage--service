@@ -17,8 +17,9 @@ cp .env.example .env
 
 3. **Coloque o PDF do e-book:**
 ```bash
-mkdir -p ebooks
-# Copie o PDF para ebooks/nas-garras-de-beth-mirage.pdf
+mkdir -p media
+# Copie o PDF para media/ebook.pdf
+# O PDF deve estar em server/media/ebook.pdf
 ```
 
 4. **Inicie o servidor:**

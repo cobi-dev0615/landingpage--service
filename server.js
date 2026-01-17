@@ -55,14 +55,14 @@ app.use(express.urlencoded({ extended: true }))
 
 // Serve ebook.pdf with download headers (force download instead of viewing)
 app.get('/media/ebook.pdf', (req, res) => {
-  const filePath = path.join(__dirname, '../media/ebook.pdf')
+  const filePath = path.join(__dirname, 'media/ebook.pdf')
   res.setHeader('Content-Disposition', 'attachment; filename="ebook.pdf"')
   res.setHeader('Content-Type', 'application/pdf')
   res.sendFile(filePath)
 })
 
 // Serve other static files from media directory (if any)
-app.use('/media', express.static(path.join(__dirname, '../media'), {
+app.use('/media', express.static(path.join(__dirname, 'media'), {
   setHeaders: (res, filePath) => {
     // Force download for PDF files
     if (path.extname(filePath) === '.pdf') {
