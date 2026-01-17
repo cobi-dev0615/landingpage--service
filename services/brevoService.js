@@ -109,6 +109,8 @@ export async function sendEbookEmail({ name, email, phone }) {
 
     // Send email via Brevo API
     const apiKey = getBrevoApiKey()
+    console.log('API Key:', apiKey)
+    console.log('Email Data:', emailData)
     const response = await fetch(`${BREVO_API_URL}/smtp/email`, {
       method: 'POST',
       headers: {
@@ -118,6 +120,7 @@ export async function sendEbookEmail({ name, email, phone }) {
       },
       body: JSON.stringify(emailData)
     })
+    console.log('Response:', response)
 
     if (!response.ok) {
       const error = await response.json()
