@@ -114,15 +114,20 @@ export async function sendEbookEmail({ name, email, phone }) {
           }
           .button {
             display: inline-block;
-            padding: 12px 24px;
-            background-color: #000000;
+            padding: 14px 28px;
+            background-color: #2563eb;
             color: #ffffff;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 8px;
             margin: 20px 0;
+            font-weight: 600;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
           }
           .button:hover {
-            background-color: #333333;
+            background-color: #1d4ed8;
+            box-shadow: 0 4px 8px rgba(37, 99, 235, 0.4);
           }
           .footer {
             margin-top: 30px;
