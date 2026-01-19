@@ -1,3 +1,4 @@
+import { Resend } from 'resend'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -5,19 +6,17 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Brevo API configuration
-const BREVO_API_URL = 'https://api.brevo.com/v3'
-
-function getBrevoApiKey() {
-  const apiKey = process.env.BREVO_API_KEY
+// Initialize Resend
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
-    throw new Error('BREVO_API_KEY não configurada nas variáveis de ambiente')
+    throw new Error('RESEND_API_KEY não configurada nas variáveis de ambiente')
   }
-  return apiKey
+  return new Resend(apiKey)
 }
 
 /**
- * Send e-book email with PDF attachment using Brevo template
+ * Send e-book email with PDF attachment using Resend
  */
 export async function sendEbookEmail({ name, email, phone }) {
   try {
@@ -46,7 +45,7 @@ export async function sendEbookEmail({ name, email, phone }) {
     ].filter(Boolean) // Remove null values
     
     let pdfPath = null
-    let pdfBase64 = null
+    let pdfBuffer = null
     
     // Try to read from filesystem first
     for (const possiblePath of possiblePaths) {
@@ -58,8 +57,7 @@ export async function sendEbookEmail({ name, email, phone }) {
     
     // If found on filesystem, read it
     if (pdfPath) {
-      const pdfContent = fs.readFileSync(pdfPath)
-      pdfBase64 = pdfContent.toString('base64')
+      pdfBuffer = fs.readFileSync(pdfPath)
     } else {
       // Fallback: fetch PDF from public URL (for Vercel serverless functions)
       console.log('PDF not found on filesystem, fetching from URL:', fileLink)
@@ -69,8 +67,7 @@ export async function sendEbookEmail({ name, email, phone }) {
           throw new Error(`Failed to fetch PDF from URL: ${response.status} ${response.statusText}`)
         }
         const arrayBuffer = await response.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
-        pdfBase64 = buffer.toString('base64')
+        pdfBuffer = Buffer.from(arrayBuffer)
         console.log('✅ PDF fetched successfully from URL')
       } catch (fetchError) {
         throw new Error(`PDF file not found on filesystem and could not fetch from URL (${fileLink}): ${fetchError.message}. Tried paths: ${possiblePaths.join(', ')}`)
@@ -80,56 +77,122 @@ export async function sendEbookEmail({ name, email, phone }) {
     // Platform link (if you have one, otherwise use contact email)
     const platformLink = process.env.PLATFORM_LINK || `${domain}`
 
-    // Prepare email data using Brevo template
-    const emailData = {
-      sender: {
-        name: process.env.FROM_NAME || 'Beth Mirage',
-        email: process.env.FROM_EMAIL || 'noreply@bethmirage.com'
-      },
-      to: [{
-        email: email,
-        name: name
-      }],
-      replyTo: {
-        email: process.env.REPLY_TO_EMAIL || 'contato@bethmirage.com'
-      },
-      templateId: parseInt(process.env.BREVO_TEMPLATE_ID || '0'),
-      params: {
-        LEAD_NAME: name,
-        EBOOK_NAME: 'Nas Garras de Beth Mirage',
-        FILE_LINK: fileLink,
-        PLATFORM_LINK: platformLink
-      },
-      // Attach PDF
-      attachment: [{
-        name: 'Nas-Garras-de-Beth-Mirage.pdf',
-        content: pdfBase64
-      }]
-    }
+    // Prepare email HTML content
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+          }
+          .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          }
+          h1 {
+            color: #000000;
+            font-size: 24px;
+            margin-bottom: 20px;
+          }
+          p {
+            color: #666;
+            margin-bottom: 15px;
+          }
+          .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #000000;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+          }
+          .button:hover {
+            background-color: #333333;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>Olá, ${name}!</h1>
+          <p>Obrigado por se interessar pelo projeto Beth Mirage.</p>
+          <p>Segue em anexo o e-book "<strong>Nas Garras de Beth Mirage</strong>" para download.</p>
+          <p>Você também pode baixar o e-book diretamente através do link abaixo:</p>
+          <p style="text-align: center;">
+            <a href="${fileLink}" class="button">Baixar E-book</a>
+          </p>
+          <p>Esperamos que este conteúdo seja útil em sua jornada de conscientização sobre o vício em apostas.</p>
+          <p>Se você precisar de apoio adicional, não hesite em nos contatar.</p>
+          <div class="footer">
+            <p>Beth Mirage - A Ilusão que Mata a Alma</p>
+            <p>Este é um email automático. Por favor, não responda diretamente.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
 
-    // Send email via Brevo API
-    const apiKey = getBrevoApiKey()
-    console.log('API Key:', apiKey)
-    console.log('Email Data:', emailData)
-    const response = await fetch(`${BREVO_API_URL}/smtp/email`, {
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'api-key': apiKey,
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify(emailData)
+    const textContent = `
+Olá, ${name}!
+
+Obrigado por se interessar pelo projeto Beth Mirage.
+
+Segue em anexo o e-book "Nas Garras de Beth Mirage" para download.
+
+Você também pode baixar o e-book diretamente através do link:
+${fileLink}
+
+Esperamos que este conteúdo seja útil em sua jornada de conscientização sobre o vício em apostas.
+
+Se você precisar de apoio adicional, não hesite em nos contatar.
+
+---
+Beth Mirage - A Ilusão que Mata a Alma
+Este é um email automático. Por favor, não responda diretamente.
+    `
+
+    // Send email via Resend
+    const resend = getResendClient()
+    
+    const { data, error } = await resend.emails.send({
+      from: `${process.env.FROM_NAME || 'Beth Mirage'} <${process.env.FROM_EMAIL || 'noreply@bethmirage.com'}>`,
+      to: [email],
+      replyTo: process.env.REPLY_TO_EMAIL || 'contato@bethmirage.com',
+      subject: 'Seu e-book: Nas Garras de Beth Mirage',
+      html: htmlContent,
+      text: textContent,
+      attachments: [
+        {
+          filename: 'Nas-Garras-de-Beth-Mirage.pdf',
+          content: pdfBuffer
+        }
+      ]
     })
-    console.log('Response:', response)
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(`Brevo API error: ${JSON.stringify(error)}`)
+    if (error) {
+      throw new Error(`Resend API error: ${JSON.stringify(error)}`)
     }
 
-    const result = await response.json()
-    console.log('✅ E-book email sent successfully:', result.messageId)
-    return result
+    console.log('✅ E-book email sent successfully:', data?.id)
+    return data
   } catch (error) {
     console.error('❌ Error sending e-book email:', error)
     throw error
@@ -141,27 +204,13 @@ export async function sendEbookEmail({ name, email, phone }) {
  */
 export async function sendStoryConfirmation({ email, identificationType }) {
   try {
-    const emailData = {
-      sender: {
-        name: process.env.FROM_NAME || 'Beth Mirage',
-        email: process.env.FROM_EMAIL || 'noreply@bethmirage.com.br'
-      },
-      to: [{
-        email: email
-      }],
-      replyTo: {
-        email: process.env.REPLY_TO_EMAIL || 'contato@bethmirage.com.br'
-      },
-      subject: 'Recebemos seu relato - Beth Mirage'
-    }
-
     const anonymityText = identificationType === 'anonymous' 
       ? 'Seu relato foi recebido de forma completamente anônima.'
       : identificationType === 'pseudonym'
       ? 'Seu relato foi recebido com pseudônimo.'
       : 'Obrigado por compartilhar seu relato conosco.'
 
-    emailData.htmlContent = `
+    const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -216,7 +265,7 @@ export async function sendStoryConfirmation({ email, identificationType }) {
       </html>
     `
 
-    emailData.textContent = `
+    const textContent = `
 Obrigado por compartilhar sua voz
 
 ${anonymityText}
@@ -230,26 +279,24 @@ Beth Mirage - A Ilusão que Mata a Alma
 Este é um email automático. Por favor, não responda diretamente.
     `
 
-    // Send email via Brevo API
-    const apiKey = getBrevoApiKey()
-    const response = await fetch(`${BREVO_API_URL}/smtp/email`, {
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'api-key': apiKey,
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify(emailData)
+    // Send email via Resend
+    const resend = getResendClient()
+    
+    const { data, error } = await resend.emails.send({
+      from: `${process.env.FROM_NAME || 'Beth Mirage'} <${process.env.FROM_EMAIL || 'noreply@bethmirage.com.br'}>`,
+      to: [email],
+      replyTo: process.env.REPLY_TO_EMAIL || 'contato@bethmirage.com.br',
+      subject: 'Recebemos seu relato - Beth Mirage',
+      html: htmlContent,
+      text: textContent
     })
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(`Brevo API error: ${JSON.stringify(error)}`)
+    if (error) {
+      throw new Error(`Resend API error: ${JSON.stringify(error)}`)
     }
 
-    const result = await response.json()
-    console.log('✅ Story confirmation email sent successfully:', result.messageId)
-    return result
+    console.log('✅ Story confirmation email sent successfully:', data?.id)
+    return data
   } catch (error) {
     console.error('❌ Error sending story confirmation email:', error)
     throw error

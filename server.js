@@ -122,7 +122,7 @@ app.post('/api/subscribe', async (req, res) => {
 
     console.log('phone', phone)
 
-    // Send e-book via Brevo
+    // Send e-book via Resend
     await sendEbookEmail({ name, email, phone })
 
     res.json({
@@ -212,7 +212,7 @@ app.post('/api/stories', async (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`)
-  console.log(`📧 Brevo email service configured`)
+  console.log(`📧 Resend email service configured`)
   console.log(`🌐 API available at http://localhost:${PORT}/api`)
   console.log(`📄 E-book available at http://localhost:${PORT}/media/ebook.pdf`)
 })

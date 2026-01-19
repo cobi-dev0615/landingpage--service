@@ -1,6 +1,6 @@
 # Backend API - Beth Mirage
 
-Backend server para automação de emails usando Brevo.
+Backend server para automação de emails usando Resend.
 
 ## 🚀 Início Rápido
 
@@ -80,7 +80,7 @@ Verifica se a API está funcionando.
 server/
 ├── server.js              # Servidor Express principal
 ├── services/
-│   ├── brevoService.js    # Serviço de email Brevo
+│   ├── brevoService.js    # Serviço de email Resend
 │   └── database.js         # Serviço de banco de dados (placeholder)
 ├── ebooks/                # Pasta para PDFs
 └── package.json
@@ -88,7 +88,7 @@ server/
 
 ## 🔧 Configuração
 
-Veja `BREVO_SETUP.md` na raiz do projeto para instruções detalhadas de configuração.
+Configure a variável de ambiente `RESEND_API_KEY` com sua chave da API do Resend.
 
 ## 📝 Notas
 
