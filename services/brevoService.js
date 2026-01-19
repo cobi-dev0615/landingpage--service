@@ -10,7 +10,11 @@ const __dirname = path.dirname(__filename)
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
-    throw new Error('RESEND_API_KEY não configurada nas variáveis de ambiente')
+    throw new Error('RESEND_API_KEY não configurada nas variáveis de ambiente. Configure a variável RESEND_API_KEY no Vercel com sua chave da API do Resend.')
+  }
+  // Validate API key format (Resend keys start with 're_')
+  if (!apiKey.startsWith('re_')) {
+    console.warn('⚠️ RESEND_API_KEY não parece estar no formato correto. Chaves do Resend começam com "re_"')
   }
   return new Resend(apiKey)
 }
@@ -188,7 +192,11 @@ Este é um email automático. Por favor, não responda diretamente.
     })
 
     if (error) {
-      throw new Error(`Resend API error: ${JSON.stringify(error)}`)
+      // Provide more helpful error messages
+      if (error.statusCode === 401) {
+        throw new Error(`Resend API authentication failed. Verifique se RESEND_API_KEY está configurada corretamente no Vercel. Erro: ${error.message}`)
+      }
+      throw new Error(`Resend API error (${error.statusCode}): ${error.message || JSON.stringify(error)}`)
     }
 
     console.log('✅ E-book email sent successfully:', data?.id)
@@ -292,7 +300,11 @@ Este é um email automático. Por favor, não responda diretamente.
     })
 
     if (error) {
-      throw new Error(`Resend API error: ${JSON.stringify(error)}`)
+      // Provide more helpful error messages
+      if (error.statusCode === 401) {
+        throw new Error(`Resend API authentication failed. Verifique se RESEND_API_KEY está configurada corretamente no Vercel. Erro: ${error.message}`)
+      }
+      throw new Error(`Resend API error (${error.statusCode}): ${error.message || JSON.stringify(error)}`)
     }
 
     console.log('✅ Story confirmation email sent successfully:', data?.id)
