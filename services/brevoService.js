@@ -44,10 +44,19 @@ export async function sendEbookEmail({ name, email, phone }) {
     ]
     
     const attachments = []
+    const downloadedIds = new Set() // Track downloaded IDs to prevent duplicates
+    const fileSizes = new Set() // Track file sizes to prevent duplicate content
     
     console.log('📥 Downloading PDFs from Google Drive...')
-    for (let i = 0; i < googleDriveLinks.length; i++) {
+    for (let i = 0; i < googleDriveLinks.length && attachments.length < 3; i++) {
       try {
+        // Extract file ID from URL to check for duplicates
+        const fileId = googleDriveLinks[i].match(/id=([^&]+)/)?.[1]
+        if (downloadedIds.has(fileId)) {
+          console.log(`⚠️ Skipping duplicate file ID: ${fileId}`)
+          continue
+        }
+        
         const response = await fetch(googleDriveLinks[i])
         if (!response.ok) {
           console.error(`❌ Failed to fetch PDF ${i + 1}: ${response.status} ${response.statusText}`)
@@ -56,23 +65,54 @@ export async function sendEbookEmail({ name, email, phone }) {
         const arrayBuffer = await response.arrayBuffer()
         const pdfBuffer = Buffer.from(arrayBuffer)
         
+        // Check if buffer is valid (not empty and looks like PDF)
+        if (pdfBuffer.length === 0) {
+          console.error(`❌ PDF ${i + 1} is empty`)
+          continue
+        }
+        
+        // Check for duplicate file size (same size might indicate duplicate content)
+        if (fileSizes.has(pdfBuffer.length)) {
+          console.warn(`⚠️ PDF ${i + 1} has same size as previous file, might be duplicate. Size: ${pdfBuffer.length} bytes`)
+          // Still add it, but log the warning
+        }
+        
+        // Verify it's a PDF by checking the header
+        const header = pdfBuffer.toString('ascii', 0, 4)
+        if (header !== '%PDF') {
+          console.error(`❌ PDF ${i + 1} is not a valid PDF file`)
+          continue
+        }
+        
         attachments.push({
           filename: pdfFilenames[i] || `Documento-${i + 1}.pdf`,
           content: pdfBuffer
         })
         
-        console.log(`✅ PDF ${i + 1} downloaded successfully: ${pdfFilenames[i]}`)
+        downloadedIds.add(fileId)
+        fileSizes.add(pdfBuffer.length)
+        console.log(`✅ PDF ${i + 1} downloaded successfully: ${pdfFilenames[i]} (${pdfBuffer.length} bytes)`)
       } catch (fetchError) {
         console.error(`❌ Error downloading PDF ${i + 1}:`, fetchError.message)
         // Continue with other PDFs even if one fails
       }
     }
     
+    // Ensure exactly 3 attachments
     if (attachments.length === 0) {
       throw new Error('Failed to download any PDFs from Google Drive')
     }
     
-    console.log(`✅ Successfully downloaded ${attachments.length} out of ${googleDriveLinks.length} PDFs`)
+    if (attachments.length > 3) {
+      console.warn(`⚠️ Warning: More than 3 PDFs downloaded (${attachments.length}), keeping only first 3`)
+      attachments.splice(3)
+    }
+    
+    if (attachments.length < 3) {
+      console.warn(`⚠️ Warning: Expected 3 PDFs but downloaded ${attachments.length}`)
+    }
+    
+    console.log(`✅ Successfully prepared ${attachments.length} PDF attachments`)
     
     // Platform link (if you have one, otherwise use contact email)
     const platformLink = process.env.PLATFORM_LINK || `${domain}`
@@ -140,14 +180,11 @@ export async function sendEbookEmail({ name, email, phone }) {
           <h1>Olá, ${name}!</h1>
           <p>Obrigado por se interessar pelo projeto Beth Mirage.</p>
           <p>Segue em anexo o e-book "<strong>Nas Garras de Beth Mirage</strong>" para download.</p>
-          <p>Você também pode baixar o e-book diretamente através do link abaixo:</p>
+          <p>Os documentos estão anexados a este email. Você também pode baixá-los diretamente através dos links abaixo:</p>
           <p style="text-align: center;">
-            <a href="${fileLink}" class="button" style="color: #ffffff !important;">Baixar E-book</a>
-          </p>
-          <p style="font-size: 12px; color: #999; text-align: center; margin-top: 10px;">
-            Links alternativos: 
-            <a href="${googleDriveLinks[1]}" style="color: #2563eb; text-decoration: none;">Link 2</a> | 
-            <a href="${googleDriveLinks[2]}" style="color: #2563eb; text-decoration: none;">Link 3</a>
+            <a href="${googleDriveLinks[0]}" class="button" style="color: #ffffff !important; margin: 5px;">Baixar Documento 1</a>
+            <a href="${googleDriveLinks[1]}" class="button" style="color: #ffffff !important; margin: 5px;">Baixar Documento 2</a>
+            <a href="${googleDriveLinks[2]}" class="button" style="color: #ffffff !important; margin: 5px;">Baixar Documento 3</a>
           </p>
           <p>Esperamos que este conteúdo seja útil em sua jornada de conscientização sobre o vício em apostas.</p>
           <p>Se você precisar de apoio adicional, não hesite em nos contatar.</p>
@@ -167,12 +204,11 @@ Obrigado por se interessar pelo projeto Beth Mirage.
 
 Segue em anexo o e-book "Nas Garras de Beth Mirage" para download.
 
-Você também pode baixar o e-book diretamente através dos links:
-${fileLink}
+Os documentos estão anexados a este email. Você também pode baixá-los diretamente através dos links:
 
-Links alternativos:
-${googleDriveLinks[1]}
-${googleDriveLinks[2]}
+Documento 1: ${googleDriveLinks[0]}
+Documento 2: ${googleDriveLinks[1]}
+Documento 3: ${googleDriveLinks[2]}
 
 Esperamos que este conteúdo seja útil em sua jornada de conscientização sobre o vício em apostas.
 
