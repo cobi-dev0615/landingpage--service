@@ -24,9 +24,14 @@ function getResendClient() {
  */
 export async function sendEbookEmail({ name, email, phone }) {
   try {
-    // Get backend URL for PDF download link
-    const backendUrl = process.env.BACKEND_URL || process.env.API_URL || 'https://landingpage-service.vercel.app'
-    const fileLink = `${backendUrl}/media/ebook.pdf`
+    // Google Drive download links
+    const googleDriveLinks = [
+      'https://drive.google.com/uc?export=download&id=1K_IQzf-bTelQ6X4Q0T5b1xtPTKIFi5A0',
+      'https://drive.google.com/uc?export=download&id=1udm_3zcMyH8ZmXlWCaNV2HUxE7BJCU3K',
+      'https://drive.google.com/uc?export=download&id=1VbrucKW2St2QQ5cnI3FvURXSeHgfyaL_'
+    ]
+    // Use the first link as primary download button
+    const fileLink = googleDriveLinks[0]
     
     // Get domain for platform link (frontend)
     const domain = process.env.DOMAIN || 'https://www.bethmirage.com'
@@ -116,7 +121,7 @@ export async function sendEbookEmail({ name, email, phone }) {
             display: inline-block;
             padding: 14px 28px;
             background-color: #2563eb;
-            color: #ffffff;
+            color: #ffffff !important;
             text-decoration: none;
             border-radius: 8px;
             margin: 20px 0;
@@ -146,7 +151,12 @@ export async function sendEbookEmail({ name, email, phone }) {
           <p>Segue em anexo o e-book "<strong>Nas Garras de Beth Mirage</strong>" para download.</p>
           <p>Você também pode baixar o e-book diretamente através do link abaixo:</p>
           <p style="text-align: center;">
-            <a href="${fileLink}" class="button">Baixar E-book</a>
+            <a href="${fileLink}" class="button" style="color: #ffffff !important;">Baixar E-book</a>
+          </p>
+          <p style="font-size: 12px; color: #999; text-align: center; margin-top: 10px;">
+            Links alternativos: 
+            <a href="${googleDriveLinks[1]}" style="color: #2563eb; text-decoration: none;">Link 2</a> | 
+            <a href="${googleDriveLinks[2]}" style="color: #2563eb; text-decoration: none;">Link 3</a>
           </p>
           <p>Esperamos que este conteúdo seja útil em sua jornada de conscientização sobre o vício em apostas.</p>
           <p>Se você precisar de apoio adicional, não hesite em nos contatar.</p>
@@ -166,8 +176,12 @@ Obrigado por se interessar pelo projeto Beth Mirage.
 
 Segue em anexo o e-book "Nas Garras de Beth Mirage" para download.
 
-Você também pode baixar o e-book diretamente através do link:
+Você também pode baixar o e-book diretamente através dos links:
 ${fileLink}
+
+Links alternativos:
+${googleDriveLinks[1]}
+${googleDriveLinks[2]}
 
 Esperamos que este conteúdo seja útil em sua jornada de conscientização sobre o vício em apostas.
 
