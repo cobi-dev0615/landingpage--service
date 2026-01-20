@@ -36,52 +36,43 @@ export async function sendEbookEmail({ name, email, phone }) {
     // Get domain for platform link (frontend)
     const domain = process.env.DOMAIN || 'https://www.bethmirage.com'
     
-    // Read PDF file
-    // Try multiple paths for different environments (Vercel, local, etc.)
-    // Priority: server directory first, then other locations
-    const possiblePaths = [
-      // Server directory (highest priority for backend)
-      path.resolve(__dirname, '../media/ebook.pdf'),
-      path.resolve(process.cwd(), 'media/ebook.pdf'),
-      // Environment variable path
-      process.env.EBOOK_PDF_PATH ? path.resolve(__dirname, '../', process.env.EBOOK_PDF_PATH) : null,
-      // Other common locations
-      path.resolve(process.cwd(), 'public/media/ebook.pdf'),
-      path.resolve(__dirname, '../ebooks/nas-garras-de-beth-mirage.pdf'),
-      path.resolve(__dirname, '../../media/ebook.pdf'),
-      path.resolve(__dirname, '../../frontend/public/media/ebook.pdf'),
-      path.resolve(__dirname, '../../frontend/media/ebook.pdf')
-    ].filter(Boolean) // Remove null values
+    // Download all 3 PDFs from Google Drive
+    const pdfFilenames = [
+      'Nas-Garras-de-Beth-Mirage.pdf',
+      'Porque-Faco-Isso.pdf',
+      'Documento-3.pdf'
+    ]
     
-    let pdfPath = null
-    let pdfBuffer = null
+    const attachments = []
     
-    // Try to read from filesystem first
-    for (const possiblePath of possiblePaths) {
-      if (fs.existsSync(possiblePath)) {
-        pdfPath = possiblePath
-        break
-      }
-    }
-    
-    // If found on filesystem, read it
-    if (pdfPath) {
-      pdfBuffer = fs.readFileSync(pdfPath)
-    } else {
-      // Fallback: fetch PDF from public URL (for Vercel serverless functions)
-      console.log('PDF not found on filesystem, fetching from URL:', fileLink)
+    console.log('📥 Downloading PDFs from Google Drive...')
+    for (let i = 0; i < googleDriveLinks.length; i++) {
       try {
-        const response = await fetch(fileLink)
+        const response = await fetch(googleDriveLinks[i])
         if (!response.ok) {
-          throw new Error(`Failed to fetch PDF from URL: ${response.status} ${response.statusText}`)
+          console.error(`❌ Failed to fetch PDF ${i + 1}: ${response.status} ${response.statusText}`)
+          continue
         }
         const arrayBuffer = await response.arrayBuffer()
-        pdfBuffer = Buffer.from(arrayBuffer)
-        console.log('✅ PDF fetched successfully from URL')
+        const pdfBuffer = Buffer.from(arrayBuffer)
+        
+        attachments.push({
+          filename: pdfFilenames[i] || `Documento-${i + 1}.pdf`,
+          content: pdfBuffer
+        })
+        
+        console.log(`✅ PDF ${i + 1} downloaded successfully: ${pdfFilenames[i]}`)
       } catch (fetchError) {
-        throw new Error(`PDF file not found on filesystem and could not fetch from URL (${fileLink}): ${fetchError.message}. Tried paths: ${possiblePaths.join(', ')}`)
+        console.error(`❌ Error downloading PDF ${i + 1}:`, fetchError.message)
+        // Continue with other PDFs even if one fails
       }
     }
+    
+    if (attachments.length === 0) {
+      throw new Error('Failed to download any PDFs from Google Drive')
+    }
+    
+    console.log(`✅ Successfully downloaded ${attachments.length} out of ${googleDriveLinks.length} PDFs`)
     
     // Platform link (if you have one, otherwise use contact email)
     const platformLink = process.env.PLATFORM_LINK || `${domain}`
@@ -202,12 +193,7 @@ Este é um email automático. Por favor, não responda diretamente.
       subject: 'Seu e-book: Nas Garras de Beth Mirage',
       html: htmlContent,
       text: textContent,
-      attachments: [
-        {
-          filename: 'Nas-Garras-de-Beth-Mirage.pdf',
-          content: pdfBuffer
-        }
-      ]
+      attachments: attachments
     })
 
     if (error) {
