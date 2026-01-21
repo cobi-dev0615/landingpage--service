@@ -25,13 +25,21 @@ function getResendClient() {
 export async function sendEbookEmail({ name, email, phone }) {
   try {
     // Google Drive download links
+    // Convert view links to direct download links
     const googleDriveLinks = [
-      'https://drive.google.com/uc?export=download&id=1K_IQzf-bTelQ6X4Q0T5b1xtPTKIFi5A0',
-      'https://drive.google.com/uc?export=download&id=1udm_3zcMyH8ZmXlWCaNV2HUxE7BJCU3K',
-      'https://drive.google.com/uc?export=download&id=1VbrucKW2St2QQ5cnI3FvURXSeHgfyaL_'
+      'https://drive.google.com/uc?export=download&id=1g8VP8nYLy823a1qY6veyASSlx8lQ5Wbd',
+      'https://drive.google.com/uc?export=download&id=1tLNTeQRk1feLvF86pG5vVNzpI_ntTx9J',
+      'https://drive.google.com/uc?export=download&id=1xBi9V6cALEc_TK4m7fsouVA0S8DmgbNP'
     ]
-    // Use the first link as primary download button
-    const fileLink = googleDriveLinks[0]
+    
+    // Original view links for button clicks (users can view or download)
+    const googleDriveViewLinks = [
+      'https://drive.google.com/file/d/1g8VP8nYLy823a1qY6veyASSlx8lQ5Wbd/view?usp=drivesdk',
+      'https://drive.google.com/file/d/1tLNTeQRk1feLvF86pG5vVNzpI_ntTx9J/view?usp=drivesdk',
+      'https://drive.google.com/file/d/1xBi9V6cALEc_TK4m7fsouVA0S8DmgbNP/view?usp=drivesdk'
+    ]
+    // Use the first view link as primary download button
+    const fileLink = googleDriveViewLinks[0]
     
     // Get domain for platform link (frontend)
     const domain = process.env.DOMAIN || 'https://www.bethmirage.com'
@@ -182,9 +190,9 @@ export async function sendEbookEmail({ name, email, phone }) {
           <p>Segue em anexo o e-book "<strong>Nas Garras de Beth Mirage</strong>" para download.</p>
           <p>Os documentos estão anexados a este email. Você também pode baixá-los diretamente através dos links abaixo:</p>
           <p style="text-align: center;">
-            <a href="${googleDriveLinks[0]}" class="button" style="color: #ffffff !important; margin: 5px;">Baixar Documento 1</a>
-            <a href="${googleDriveLinks[1]}" class="button" style="color: #ffffff !important; margin: 5px;">Baixar Documento 2</a>
-            <a href="${googleDriveLinks[2]}" class="button" style="color: #ffffff !important; margin: 5px;">Baixar Documento 3</a>
+            <a href="${googleDriveViewLinks[0]}" class="button" style="color: #ffffff !important; margin: 5px;">Baixar Documento 1</a>
+            <a href="${googleDriveViewLinks[1]}" class="button" style="color: #ffffff !important; margin: 5px;">Baixar Documento 2</a>
+            <a href="${googleDriveViewLinks[2]}" class="button" style="color: #ffffff !important; margin: 5px;">Baixar Documento 3</a>
           </p>
           <p>Esperamos que este conteúdo seja útil em sua jornada de conscientização sobre o vício em apostas.</p>
           <p>Se você precisar de apoio adicional, não hesite em nos contatar.</p>
@@ -206,9 +214,9 @@ Segue em anexo o e-book "Nas Garras de Beth Mirage" para download.
 
 Os documentos estão anexados a este email. Você também pode baixá-los diretamente através dos links:
 
-Documento 1: ${googleDriveLinks[0]}
-Documento 2: ${googleDriveLinks[1]}
-Documento 3: ${googleDriveLinks[2]}
+Documento 1: ${googleDriveViewLinks[0]}
+Documento 2: ${googleDriveViewLinks[1]}
+Documento 3: ${googleDriveViewLinks[2]}
 
 Esperamos que este conteúdo seja útil em sua jornada de conscientização sobre o vício em apostas.
 
